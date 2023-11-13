@@ -31,7 +31,7 @@ export default class Unpack {
 
   /**
    * Unzip apkg file
-   * @param p deck required to be unpacked
+   * @param p path to .apkg file
    * @param o folder for unpacking
    */
   async unpack(p: string, o: string): Promise<void> {
