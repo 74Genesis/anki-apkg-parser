@@ -1,5 +1,5 @@
 import test from 'ava';
-import { Unpack, AnkiDb } from 'apkg-parser';
+import { Unpack, AnkiDb } from 'anki-apkg-parser';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { new_deck, legacy_deck } from './mocks/decks.js';
