@@ -1,4 +1,5 @@
 export const DB_FILES = {
-  latest: 'collection.anki21b',
-  legacy: 'collection.anki21',
+  anki21b: 'collection.anki21b', // modern version
+  anki21: 'collection.anki21', // legacy
+  anki2: 'collection.anki2', // oldest version
 };

@@ -58,10 +58,13 @@ export default class AnkiDb extends Database {
   }
 
   get actualDbFile(): string {
-    let file = path.join(this.folder, DB_FILES.latest);
+    let file = path.join(this.folder, DB_FILES.anki21b);
     if (fs.existsSync(file)) return file;
 
-    file = path.join(this.folder, DB_FILES.legacy);
+    file = path.join(this.folder, DB_FILES.anki21);
+    if (fs.existsSync(file)) return file;
+
+    file = path.join(this.folder, DB_FILES.anki2);
     if (fs.existsSync(file)) return file;
 
     return '';
