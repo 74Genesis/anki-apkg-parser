@@ -69,8 +69,24 @@ test('Get Media legacy', async (t) => {
   t.deepEqual(res, { '0': 'download.jpg', '1': 'cable-car.mp3' });
 });
 
-test.only('Get Media new deck', async (t) => {
+test('Get Media new deck', async (t) => {
   const deck = __dirname + '/decks/new_deck.apkg';
+  const temp = __dirname + '/temp/';
+
+  if (fs.existsSync(temp)) fs.rmSync(temp, { recursive: true });
+
+  const p = new Unpack();
+  await p.unpack(deck, temp);
+
+  const db = new AnkiDb(temp);
+  await db.open();
+
+  const res = await db.getMedia();
+  t.deepEqual(res, { '0': 'download.jpg', '1': 'cable-car.mp3' });
+});
+
+test.only('Get Templates', async (t) => {
+  const deck = __dirname + '/decks/deck_media_new.apkg';
   const temp = __dirname + '/temp/';
 
   if (fs.existsSync(temp)) fs.rmSync(temp, { recursive: true });

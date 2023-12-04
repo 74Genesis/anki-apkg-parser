@@ -71,22 +71,6 @@ export default class Unpack {
     }
   }
 
-  // async dbConnect(folder: string): Promise<AnkiDb> {
-  //   let filename = path.join(folder, DB_FILES.latest);
-
-  //   if (!fs.existsSync(filename)) filename = path.join(folder, DB_FILES.legacy);
-
-  //   if (!fs.existsSync(filename)) throw new Error('Database not found in folder: ' + folder);
-
-  //   const db = new AnkiDb({
-  //     filename,
-  //     driver: sqlite3.Database,
-  //   });
-
-  //   await db.open();
-  //   return db;
-  // }
-
   private createTempDir(path: string) {
     try {
       if (!fs.existsSync(path)) {

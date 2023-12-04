@@ -1,4 +1,4 @@
-import AnkiDb from './core/AnkiDb.js';
+import Deck from './core/Deck.js';
 import Unpack from './core/Unpack.js';
 
-export { AnkiDb, Unpack };
+export { Deck, Unpack };
