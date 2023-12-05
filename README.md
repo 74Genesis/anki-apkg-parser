@@ -8,6 +8,7 @@
 Installation guide.
 
 `coming soon...`
+
 `$ npm i`
 
 ## Usage
