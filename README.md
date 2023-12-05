@@ -1,15 +1,16 @@
 ## anki-apkg-parser
 
-> Node.js library to parse anki decks (.apkg files). Supports parsing notes, cards, media files, custom db queries
+> Node.js library to parse anki decks (.apkg files).
+> Supports parsing notes, cards, media files, custom db queries
 
-### Installation `anki-apkg-parser`
+## Installation `anki-apkg-parser`
 
 Installation guide.
 
 `coming soon...`
 `$ npm i`
 
-### Usage
+## Usage
 
 The library provides two classes `Unpack` and `Deck`
 
@@ -71,7 +72,7 @@ try {
 ...
 ```
 
-### Advanced usage
+## Advanced usage
 
 TODO: descripbe this part
 
