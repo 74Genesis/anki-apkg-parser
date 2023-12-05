@@ -2,10 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as child_process from 'child_process';
 import unzipit from 'unzipit';
-// import sqlite3 from 'sqlite3';
-//@ts-ignore
 import { fileURLToPath } from 'url';
-// import { DB_FILES } from '../constants.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -37,7 +34,7 @@ export default class Unpack {
   async unpack(p: string, o: string): Promise<void> {
     if (!fs.existsSync(p)) throw new Error('Deck file not found in: ' + path);
 
-    this.createTempDir(o);
+    this.createDir(o);
 
     const buf = fs.readFileSync(p);
     const { entries } = await unzipit.unzip(new Uint8Array(buf));
@@ -71,7 +68,11 @@ export default class Unpack {
     }
   }
 
-  private createTempDir(path: string) {
+  /**
+   * Creates new dir if it doesn't exists
+   * @param path folder path
+   */
+  private createDir(path: string) {
     try {
       if (!fs.existsSync(path)) {
         fs.mkdirSync(path, { recursive: true });

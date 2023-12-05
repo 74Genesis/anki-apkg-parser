@@ -1,5 +1,5 @@
 import test from 'ava';
-import { Unpack, AnkiDb } from 'anki-apkg-parser';
+import { Unpack, Deck } from 'anki-apkg-parser';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { new_deck, legacy_deck } from './mocks/decks.js';
@@ -20,20 +20,24 @@ test('Invalid file', async (t) => {
 });
 
 test('Get Notes from new deck', async (t) => {
-  const deck = __dirname + '/decks/new_deck.apkg';
+  const deckpath = __dirname + '/decks/new_deck.apkg';
   const temp = __dirname + '/temp/';
 
   if (fs.existsSync(temp)) fs.rmSync(temp, { recursive: true });
 
   const p = new Unpack();
-  await p.unpack(deck, temp);
+  await p.unpack(deckpath, temp);
 
-  const db = new AnkiDb(temp);
-  await db.open();
+  const deck = new Deck(temp);
+  try {
+    const db = await deck.dbOpen();
+    const res = await db.getNotes();
 
-  const res = await db.getNotes();
-  console.log(res);
-  t.truthy(p);
+    console.log(res);
+    t.truthy(p);
+  } catch (e) {
+    t.fail();
+  }
 });
 
 test('Get Notes from old deck', async (t) => {
@@ -45,7 +49,7 @@ test('Get Notes from old deck', async (t) => {
   const p = new Unpack();
   await p.unpack(deck, temp);
 
-  const db = new AnkiDb(temp);
+  const db = new Deck(temp);
   await db.open();
 
   const res = await db.getNotes();
@@ -62,7 +66,7 @@ test('Get Media legacy', async (t) => {
   const p = new Unpack();
   await p.unpack(deck, temp);
 
-  const db = new AnkiDb(temp);
+  const db = new Deck(temp);
   await db.open();
 
   const res = await db.getMedia();
@@ -78,7 +82,7 @@ test('Get Media new deck', async (t) => {
   const p = new Unpack();
   await p.unpack(deck, temp);
 
-  const db = new AnkiDb(temp);
+  const db = new Deck(temp);
   await db.open();
 
   const res = await db.getMedia();
@@ -94,7 +98,7 @@ test.only('Get Templates', async (t) => {
   const p = new Unpack();
   await p.unpack(deck, temp);
 
-  const db = new AnkiDb(temp);
+  const db = new Deck(temp);
   await db.open();
 
   const res = await db.getMedia();

@@ -1,22 +1,21 @@
-import { Database } from 'sqlite';
 import protobuf from 'protobufjs';
 import { DB_FILES } from '../constants.js';
 import * as fs from 'fs';
 import * as path from 'path';
-import sqlite3 from 'sqlite3';
 import { fileURLToPath } from 'url';
 import DbNotFoundError from './errors/DbNotFoundError.js';
 import Anki21bDb from './db/Anki21bDb.js';
 import Anki21Db from './db/Anki21Db.js';
 import Anki2Db from './db/Anki2Db.js';
+import Db from './db/Db.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export default class Deck {
-  public anki2: Database | null = null; // oldest db version
-  public anki21: Database | null = null; // old db version
-  public anki21b: Database | null = null; // latest db version
+  public anki2: Db | null = null; // oldest db version
+  public anki21: Db | null = null; // old db version
+  public anki21b: Db | null = null; // latest db version
 
   folder: string = '';
 
@@ -30,7 +29,10 @@ export default class Deck {
    */
   private setDatabases() {
     let file = path.join(this.folder, DB_FILES.anki21b);
-    if (fs.existsSync(file)) this.anki21b = new Anki21bDb(file);
+    if (fs.existsSync(file)) {
+      this.anki21b = new Anki21bDb(file);
+      this.anki21b.open();
+    }
 
     file = path.join(this.folder, DB_FILES.anki21);
     if (fs.existsSync(file)) this.anki21b = new Anki21Db(file);
@@ -42,10 +44,22 @@ export default class Deck {
   /**
    * Detect and return current db version used by anki
    */
-  public get db(): Database | null {
+  private get db(): Db | null {
     if (this.anki21b) return this.anki21b;
     if (this.anki21) return this.anki21;
     return this.anki2;
+  }
+
+  /**
+   * Open and return main database
+   * @returns current database
+   */
+  public async dbOpen(): Promise<Db> {
+    if (!this.db) throw new DbNotFoundError('Database not found');
+
+    await this.db.open();
+
+    return this.db;
   }
 
   // TODO: read meta file first, to understand version of the deck and how to read media file.
