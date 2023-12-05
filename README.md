@@ -31,14 +31,14 @@ try {
 ...
 ```
 
-Some files you can see after unpacking the deck:
+Which files you will see after unpacking the deck?
 
-`0`, `1`, `2` - files with number names are media files (images, audio, video)
-`collection.anki2` - old version of anki database
-`collection.anki21` - more modern version of database
-`collection.anki21b` - the latest databse version
-`media` - Associative list of media files. Their numbers and real names. (Protocol Buffer or json file)
-`meta` - Meta data (Protocol Buffer or json file)
+- `0`, `1`, `2` - files with number names are media files (images, audio, video)
+- `collection.anki2` - old version of anki database
+- `collection.anki21` - more modern version of database
+- `collection.anki21b` - the latest databse version
+- `media` - Associative list of media files. Their numbers and real names. (Protocol Buffer or json file)
+- `meta` - Meta data (Protocol Buffer or json file)
 
 Quick usage of `Deck` class:
 
