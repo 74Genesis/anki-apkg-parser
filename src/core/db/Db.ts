@@ -11,7 +11,11 @@ export default abstract class Db extends Database {
   }
 
   /**
-   * Returns all notes
+   * Notes list indexed by id
+   * {
+   *    '123': <INote>{...},
+   *    '456': <INote>{...},
+   * }
    * @returns list of INote objects
    */
   async getNotes(): Promise<Record<string, INote>> {
@@ -47,7 +51,8 @@ export default abstract class Db extends Database {
           flags,
           data,
         } = row;
-        notes[row.nid].cards.push({
+
+        notes?.[row.nid]?.cards?.push({
           id,
           nid,
           did,

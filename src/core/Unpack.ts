@@ -2,26 +2,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as child_process from 'child_process';
 import unzipit from 'unzipit';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-interface Config {
-  tempFilesPath?: string;
-}
 
 // TODO: save errors to log
 export default class Unpack {
-  private config: Config;
-
-  constructor(config?: Config) {
-    this.config = Object.assign(
-      {
-        // tempFilesPath: './temp/',
-      },
-      config || {},
-    );
+  constructor() {
     const res = child_process.execSync(`type unzstd`).toString();
     if (res === 'unzstd not found') throw new Error('unzstd library not found. Please install it before');
   }

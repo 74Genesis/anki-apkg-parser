@@ -1,5 +1,5 @@
 {
-  "name": "apkg-parser",
+  "name": "anki-apkg-parser",
   "type": "module",
   "version": "1.0.0",
   "description": "parse apkg files from anki app",
