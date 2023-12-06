@@ -29,16 +29,13 @@ export default class Deck {
    */
   private setDatabases() {
     let file = path.join(this.folder, DB_FILES.anki21b);
-    if (fs.existsSync(file)) {
-      this.anki21b = new Anki21bDb(file);
-      this.anki21b.open();
-    }
+    if (fs.existsSync(file)) this.anki21b = new Anki21bDb(file);
 
     file = path.join(this.folder, DB_FILES.anki21);
-    if (fs.existsSync(file)) this.anki21b = new Anki21Db(file);
+    if (fs.existsSync(file)) this.anki21 = new Anki21Db(file);
 
     file = path.join(this.folder, DB_FILES.anki2);
-    if (fs.existsSync(file)) this.anki21b = new Anki2Db(file);
+    if (fs.existsSync(file)) this.anki2 = new Anki2Db(file);
   }
 
   /**
