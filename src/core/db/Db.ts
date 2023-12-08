@@ -82,7 +82,7 @@ export default abstract class Db extends Database {
    * returns collection info with json parsed configs
    * @returns collection json
    */
-  async getCollection(): Promise<Database> {
+  async getCollection(): Promise<any> {
     const res = await this.get('SELECT * FROM col');
     res.conf = JSON.parse(res.conf);
     res.models = JSON.parse(res.models);
@@ -90,5 +90,16 @@ export default abstract class Db extends Database {
     res.tags = JSON.parse(res.tags);
 
     return res;
+  }
+
+  async getDeckConfig(): Promise<any> {
+    const res = await this.get('SELECT * FROM deck_config');
+    res.config = Buffer.from(res.config, 'hex').toString('utf-8');
+    return res;
+  }
+
+  async getModels(): Promise<any> {
+    const col = await this.getCollection();
+    return col?.models;
   }
 }
