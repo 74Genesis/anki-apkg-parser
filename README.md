@@ -28,7 +28,7 @@ try {
 ...
 ```
 
-Which files you will see after unpacking the deck?
+Which files will you see after unpacking the deck?
 
 - `0`, `1`, `2` - files with number names are media files (images, audio, video)
 - `collection.anki2` - old version of anki database
