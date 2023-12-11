@@ -23,15 +23,15 @@ export default abstract class Db extends Database {
     const cardRows = await this.all('SELECT * from cards');
 
     const notes: Record<string, INote> = {};
-    for (let row of noteRows) {
-      let { id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data } = row; // note
+    for (const row of noteRows) {
+      const { id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data } = row; // note
 
       notes[id] = <INote>{ id, guid, mid, mod, usn, tags, flds, sfld, csum, flags, data, cards: [] };
     }
 
-    for (let row of cardRows) {
+    for (const row of cardRows) {
       if (notes?.[row?.nid]?.cards) {
-        let {
+        const {
           id,
           nid,
           did,

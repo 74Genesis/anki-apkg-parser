@@ -42,7 +42,7 @@ export default class Anki21bDb extends Db {
     const models = await this.getNoteTypes();
     const res: Record<string, any> = {};
     if (models?.length) {
-      for (let model of models) {
+      for (const model of models) {
         if (model && model.id) {
           res[model?.id] = model;
           res[model?.id].tmpls = (await this.getTemplates(model.id)) || [];
