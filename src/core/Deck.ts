@@ -17,7 +17,7 @@ export default class Deck {
   public anki21: Db | null = null; // old db version
   public anki21b: Db | null = null; // latest db version
 
-  folder: string = '';
+  folder = '';
 
   constructor(folder: string) {
     this.folder = folder;
@@ -92,7 +92,7 @@ export default class Deck {
     }
 
     const res: Record<string, string> = {};
-    for (let i in entries) {
+    for (const i in entries) {
       res[String(i)] = String(entries?.[i]?.name);
     }
 
