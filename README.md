@@ -1,6 +1,6 @@
 ## anki-apkg-parser
 
-**anki-apkg-parser** - nodejs helper for exploring Anki `.apkg` files. You can unpack the deck and get list of notes, cards, media files, models. This library uses `sqlite` library as a dependency, so you can make any custom SQL query to get the data;
+**anki-apkg-parser** - nodejs helper for exploring Anki `.apkg` files. You can unpack the deck and get list of notes, cards, media files, models. This library uses `sqlite` as a dependency, so you can make any custom SQL query to get the data;
 
 ## Installation 
 
