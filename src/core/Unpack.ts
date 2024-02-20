@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as child_process from 'child_process';
-import unzipit from 'unzipit';
+import { unzip } from 'unzipit';
 
 // TODO: save errors to log
 export default class Unpack {
@@ -21,7 +21,7 @@ export default class Unpack {
     this.createDir(o);
 
     const buf = fs.readFileSync(p);
-    const { entries } = await unzipit.unzip(new Uint8Array(buf));
+    const { entries } = await unzip(new Uint8Array(buf));
 
     for (const entry of Object.values(entries)) {
       if (entry.isDirectory) {
