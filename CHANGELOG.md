@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Unpacking a deck into a folder used by another deck no longer returns data of the previous deck or a corrupted database because of leftover `-wal`/`-shm` files.
 - Errors while extracting the archive are reported instead of being ignored.
 - TypeScript declarations work with `"moduleResolution": "nodenext"`.
+- New-format decks can be read on Node.js 24+: Anki's `unicase` collation is replaced with SQLite `NOCASE` in the unpacked database.
 
 ### Changed
 

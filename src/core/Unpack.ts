@@ -5,6 +5,7 @@ import * as fzstd from 'fzstd';
 import yauzl from 'yauzl';
 import { Transform } from 'node:stream';
 import { createReadStream, createWriteStream } from 'node:fs';
+import { DatabaseSync } from 'node:sqlite';
 import { DB_FILES } from '../constants.js';
 
 const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
@@ -79,6 +80,36 @@ export default class Unpack {
       }
     } finally {
       fs.rmSync(zst, { recursive: true, force: true });
+    }
+
+    for (const db of Object.values(DB_FILES)) {
+      const target = path.join(out, db);
+      if (fs.existsSync(target)) this.replaceUnicaseCollation(target);
+    }
+  }
+
+  /**
+   * Anki declares text columns with its own "unicase" collation. node:sqlite can't register
+   * custom collations, and SQLite 3.53+ (Node.js 24+) refuses to read WITHOUT ROWID tables
+   * (templates, fields, tags) with an unknown collation. Replace it with built-in NOCASE
+   * and rebuild the affected indexes. Only the unpacked copy of the database is changed.
+   * @param file - database file
+   */
+  private replaceUnicaseCollation(file: string) {
+    // defensive mode (on by default in newer Node.js versions) forbids writable_schema
+    const db = new DatabaseSync(file, { defensive: false } as any);
+    try {
+      // RESET reloads the changed schema, REINDEX rebuilds indexes that were ordered by unicase
+      db.exec(`
+        PRAGMA writable_schema = ON;
+        UPDATE sqlite_master SET sql = replace(sql, 'COLLATE unicase', 'COLLATE NOCASE') WHERE sql LIKE '%COLLATE unicase%';
+        PRAGMA writable_schema = RESET;
+        REINDEX NOCASE;
+      `);
+    } catch (e: any) {
+      throw new Error(`Failed to prepare database "${path.basename(file)}": ${e?.message}`);
+    } finally {
+      db.close();
     }
   }
 

@@ -194,6 +194,25 @@ test('Database of previous deck is removed on unpacking', async (t) => {
   t.deepEqual(await apkg.getMedia(), { '0': 'download.jpg', '1': 'cable-car.mp3' });
 });
 
+test('Tables with Anki "unicase" collation are readable', async (t) => {
+  const apkg = await createApkg('unicode_names_deck.apkg');
+  const db = await apkg.getDb();
+
+  const schema = await db.all(`SELECT sql FROM sqlite_master WHERE sql LIKE '%unicase%'`);
+  t.is(schema.length, 0);
+  t.deepEqual(await db.all('PRAGMA integrity_check'), [{ integrity_check: 'ok' }]);
+
+  const models = Object.values(await db.getModels()).map((m: any) => m.name);
+  t.true(models.includes('ёлка'));
+  t.is((await db.all('SELECT * FROM fields')).length, 30);
+
+  // lookup uses the rebuilt index on notetypes.name
+  t.is((await db.get('SELECT name FROM notetypes WHERE name = ?', 'Ёжик'))?.name, 'Ёжик');
+  t.is((await db.get('SELECT name FROM notetypes WHERE name = ?', 'APPLE'))?.name, 'Apple');
+
+  await db.close();
+});
+
 test('zstd decompress', async (t) => {
   const file = __dirname + '/zstd/test.txt.zst';
   const out = __dirname + '/temp/test.txt';

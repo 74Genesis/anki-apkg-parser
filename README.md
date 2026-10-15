@@ -54,7 +54,7 @@ Throws if the file is missing, is not a valid archive, or a compressed file insi
 
 #### `new Apkg(folder)`
 
-Opens a folder that was already unpacked earlier.
+Opens a folder that was already unpacked earlier by `Apkg.create` or `Unpack`. Folders unpacked by other tools may not be readable on Node.js 24+, see [Text comparison](#text-comparison).
 
 #### `apkg.getDb(): Promise<Db>`
 
@@ -122,6 +122,10 @@ Anki has changed the deck format several times. Some methods depend on it:
 The structure of `getModels()` items differs between formats. Template HTML is available as `qfmt` and `afmt` in both.
 
 For the database schema see the [Anki database structure](https://github.com/ankidroid/Anki-Android/wiki/Database-Structure) description.
+
+### Text comparison
+
+New-format databases declare name columns (note types, templates, fields, decks, tags) with Anki's own `unicase` collation, which `node:sqlite` can't provide. On unpacking, it is replaced with SQLite's built-in `NOCASE` in the unpacked copy of the database. As a result, comparisons like `WHERE name = ?` ignore case only for Latin letters: `'APPLE'` matches `Apple`, but `'ёлка'` does not match `Ёлка`.
 
 ## Migrating from 1.x
 
