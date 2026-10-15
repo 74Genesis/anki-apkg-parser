@@ -18,27 +18,87 @@ npm install anki-apkg-parser
 
 Requires Node.js 22.13 or newer. The package is ESM-only.
 
-## Quick start
+## Usage
 
 ```js
 import { Apkg } from 'anki-apkg-parser';
 
-// unpack the deck into a folder and open it
+try {
+  // unpack the deck into a folder (created if missing) and get an Apkg instance
+  const apkg = await Apkg.create('./deck.apkg', './unpacked');
+
+  // media files list: { '0': 'car.jpg', '1': 'cable-car.mp3' }
+  const media = await apkg.getMedia();
+
+  // open the deck database
+  const db = await apkg.getDb();
+
+  // all notes, each with its cards in note.cards
+  const notes = await db.getNotes();
+
+  // note types (models) with their templates and fields
+  const models = await db.getModels();
+
+  // any SQL query
+  const cards = await db.all('SELECT * FROM cards');
+  const firstNote = await db.get('SELECT * FROM notes LIMIT 1');
+
+  await db.close();
+} catch (e) {
+  console.log('Failed to read the deck', e);
+}
+```
+
+## Examples
+
+### Get the text of each note
+
+Note fields are stored in one string separated by the `0x1F` character.
+
+```js
 const apkg = await Apkg.create('./deck.apkg', './unpacked');
 const db = await apkg.getDb();
 
-const notes = await db.getNotes();
-for (const note of notes) {
-  const fields = note.flds.split('\x1f'); // fields are separated by the 0x1F character
-  console.log(fields[0], '→', fields[1], `(${note.cards.length} cards)`);
+for (const note of await db.getNotes()) {
+  const [front, back] = note.flds.split('\x1f');
+  console.log(front, '→', back);
 }
-
-const media = await apkg.getMedia(); // { '0': 'car.jpg', '1': 'cable-car.mp3' }
 
 await db.close();
 ```
 
-The unpacked media files are named `0`, `1`, `2`… inside the folder. Use `getMedia()` to map them to the original file names.
+### Save media files with their original names
+
+Inside the unpacked folder media files are named `0`, `1`, `2`… `getMedia()` maps them to the original names.
+
+```js
+import fs from 'node:fs';
+import path from 'node:path';
+
+const apkg = await Apkg.create('./deck.apkg', './unpacked');
+const media = await apkg.getMedia();
+
+fs.mkdirSync('./media', { recursive: true });
+for (const [file, name] of Object.entries(media)) {
+  fs.copyFileSync(path.join('./unpacked', file), path.join('./media', name));
+}
+```
+
+### Find cards of a note
+
+```js
+const db = await apkg.getDb();
+
+const note = await db.get('SELECT * FROM notes WHERE sfld = ?', 'Car');
+const cards = await db.all('SELECT * FROM cards WHERE nid = ?', note.id);
+```
+
+### Open a deck that is already unpacked
+
+```js
+const apkg = new Apkg('./unpacked');
+const db = await apkg.getDb();
+```
 
 ## API
 
