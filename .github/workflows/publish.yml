@@ -29,6 +29,10 @@ jobs:
             exit 1
           fi
 
-      - run: npm ci
+      # trusted publishing needs npm 11.5.1+ (Node.js 24 ships with npm 11)
+      - run: npm --version
+
+      # dependency install scripts never run in the job that can publish
+      - run: npm ci --ignore-scripts
       - run: npm test
       - run: npm publish --access public
