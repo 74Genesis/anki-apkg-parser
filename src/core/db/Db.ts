@@ -1,13 +1,59 @@
-import { Database } from 'sqlite';
-import sqlite3 from 'sqlite3';
-import INote from '../interfaces/INote';
+import { DatabaseSync, type SQLInputValue, type StatementSync } from 'node:sqlite';
+import INote from '../interfaces/INote.js';
 
-export default abstract class Db extends Database {
+export type SqlParam = SQLInputValue | Record<string, SQLInputValue>;
+
+/**
+ * Wrapper around built-in `node:sqlite`.
+ * Methods are async to keep compatibility with the previous `sqlite` package API.
+ */
+export default abstract class Db {
+  readonly filename: string;
+  private db: DatabaseSync | null = null;
+
   constructor(filename: string) {
-    super({
-      filename,
-      driver: sqlite3.Database,
-    });
+    this.filename = filename;
+  }
+
+  async open(): Promise<void> {
+    if (this.db) return;
+    this.db = new DatabaseSync(this.filename);
+  }
+
+  async close(): Promise<void> {
+    this.db?.close();
+    this.db = null;
+  }
+
+  /**
+   * Native `node:sqlite` database for queries which are not covered by this wrapper
+   */
+  getDatabaseInstance(): DatabaseSync {
+    if (!this.db) throw new Error('Database is not opened');
+    return this.db;
+  }
+
+  prepare(sql: string): StatementSync {
+    return this.getDatabaseInstance().prepare(sql);
+  }
+
+  async exec(sql: string): Promise<void> {
+    this.getDatabaseInstance().exec(sql);
+  }
+
+  async all<T = any[]>(sql: string, ...params: SqlParam[] | [SqlParam[]]): Promise<T> {
+    const rows = this.prepare(sql).all(...normalizeParams(params));
+    return rows.map(normalizeRow) as T;
+  }
+
+  async get<T = any>(sql: string, ...params: SqlParam[] | [SqlParam[]]): Promise<T | undefined> {
+    const row = this.prepare(sql).get(...normalizeParams(params));
+    return (row ? normalizeRow(row) : undefined) as T | undefined;
+  }
+
+  async run(sql: string, ...params: SqlParam[] | [SqlParam[]]): Promise<{ lastID: number | bigint, changes: number | bigint }> {
+    const res = this.prepare(sql).run(...normalizeParams(params));
+    return { lastID: res.lastInsertRowid, changes: res.changes };
   }
 
   /**
@@ -105,4 +151,27 @@ export default abstract class Db extends Database {
     const col = await this.getCollection();
     return col?.models;
   }
+}
+
+/**
+ * Supports both call styles: all(sql, a, b) and all(sql, [a, b])
+ */
+function normalizeParams(params: SqlParam[] | [SqlParam[]]): any[] {
+  if (params.length === 1 && Array.isArray(params[0])) return params[0];
+  return params;
+}
+
+/**
+ * node:sqlite returns rows with null prototype and blobs as Uint8Array,
+ * convert them to plain objects with Buffer blobs like the `sqlite3` driver did
+ */
+function normalizeRow(row: Record<string, any>): Record<string, any> {
+  const res: Record<string, any> = {};
+  for (const key in row) {
+    const value = row[key];
+    res[key] = value instanceof Uint8Array && !Buffer.isBuffer(value)
+      ? Buffer.from(value.buffer, value.byteOffset, value.byteLength)
+      : value;
+  }
+  return res;
 }

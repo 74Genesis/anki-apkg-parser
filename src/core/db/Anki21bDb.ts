@@ -2,7 +2,7 @@ import Db from './Db.js';
 
 export default class Anki21bDb extends Db {
   private async getFields(ntid: string) {
-    return await this.all(`SELECT * FROM fields WHERE ntid = ${ntid}`);
+    return await this.all(`SELECT * FROM fields WHERE ntid = ?`, ntid);
   }
 
   /**
@@ -14,7 +14,7 @@ export default class Anki21bDb extends Db {
     let rows = [];
 
     if (ntid) {
-      rows = await this.all(`SELECT * FROM templates WHERE ntid = ${ntid} ORDER BY ord`);
+      rows = await this.all(`SELECT * FROM templates WHERE ntid = ? ORDER BY ord`, ntid);
     } else {
       rows = await this.all(`SELECT * FROM templates ORDER BY ord`);
     }
@@ -60,7 +60,7 @@ export default class Anki21bDb extends Db {
   }
 
   private async getNoteType(id: string): Promise<any> {
-    const res = await this.get(`SELECT * FROM notetypes WHERE ntid = ${id}`);
+    const res = await this.get(`SELECT * FROM notetypes WHERE id = ?`, id);
     return res;
   }
 }
