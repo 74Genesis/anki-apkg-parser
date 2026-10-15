@@ -1,60 +1,136 @@
-## anki-apkg-parser
+# anki-apkg-parser
 
-**anki-apkg-parser** - nodejs helper for parsing Anki `.apkg` files. You can unpack the deck and get list of notes, cards, media files, models. This library uses `sqlite` as a dependency, so you can make any SQL queries yourself;
+[![npm version](https://img.shields.io/npm/v/anki-apkg-parser.svg)](https://www.npmjs.com/package/anki-apkg-parser)
+[![node](https://img.shields.io/node/v/anki-apkg-parser.svg)](https://nodejs.org)
 
-## Installation 
+Read Anki deck files (`.apkg`, `.colpkg`) in Node.js: unpack the archive, then get notes, cards, note types and media.
 
-`npm i anki-apkg-parser`
+- Supports all deck formats: legacy `collection.anki2` / `collection.anki21` and the current `collection.anki21b`.
+- Full SQL access to the deck database through the built-in [`node:sqlite`](https://nodejs.org/api/sqlite.html).
+- No native modules, nothing is compiled on install. Three small dependencies.
+- TypeScript types included.
 
-## Usage
+## Installation
 
-Basic usage:
-```typescript
-    import { Apkg } from 'anki-apkg-parser';
-
-    const deck = 'deck.apkg';
-
-    const deckPath = path.join(__dirname, deck);
-    const unpackedFolder = path.join(__dirname, 'unpacked');
-    
-    // always wrap unpacking code with try/catch
-    try {
-        // Function "create" runs unpacking the deck and creates Apkg instance;
-        const apkg = await Apkg.create(deckPath, unpackedFolder);
-
-        // get JSON mapping of media files in deck
-        const media = await apkg.getMedia(); // { '0': 'car.jpg', '1': 'cup.mp3' }
-        
-        // get sqlite3 database instance
-        const db = await apkg.getDb();
-
-
-        // fetch list of all notes
-        const notes = await db.getNotes();
-
-        // fetch colleciton raw
-        const collection = await db.getCollection();
-
-        // get deck config
-        const config = await db.getDeckConfig();
-
-        // get deck models
-        const models = await db.getModels();
-
-        // make raw query
-        const result = await db.get('SELECT * FROM col');
-
-    } catch (e) {
-        console.log('Fail during unpacking apkg', e);
-    }
-...
+```bash
+npm install anki-apkg-parser
 ```
 
-.apkg files are simply ZIP archives. What's inside ?
+Requires Node.js 22.13 or newer. The package is ESM-only.
 
-- `0`, `1`, `2` - media files (images, sounds, videos). 
-- `collection.anki2` - legacy database pre-2.1
-- `collection.anki21` - anki 2.1+
-- `collection.anki21b` - latest db version
-- `media` - json mapping of media files (see the first one) - {1: 'car.jpg', '2': ...}
-- `meta` - Meta data, if exists
+## Quick start
+
+```js
+import { Apkg } from 'anki-apkg-parser';
+
+// unpack the deck into a folder and open it
+const apkg = await Apkg.create('./deck.apkg', './unpacked');
+const db = await apkg.getDb();
+
+const notes = await db.getNotes();
+for (const note of notes) {
+  const fields = note.flds.split('\x1f'); // fields are separated by the 0x1F character
+  console.log(fields[0], '→', fields[1], `(${note.cards.length} cards)`);
+}
+
+const media = await apkg.getMedia(); // { '0': 'car.jpg', '1': 'cable-car.mp3' }
+
+await db.close();
+```
+
+The unpacked media files are named `0`, `1`, `2`… inside the folder. Use `getMedia()` to map them to the original file names.
+
+## API
+
+### `Apkg`
+
+#### `Apkg.create(file, folder): Promise<Apkg>`
+
+Unpacks `file` into `folder` (created if missing) and returns an `Apkg` instance. Compressed files inside new-format decks are decompressed automatically.
+
+Database and metadata files left in `folder` by a previously unpacked deck are removed first, so you can reuse the same folder. Other files in the folder are not touched.
+
+Throws if the file is missing, is not a valid archive, or a compressed file inside it is corrupted.
+
+#### `new Apkg(folder)`
+
+Opens a folder that was already unpacked earlier.
+
+#### `apkg.getDb(): Promise<Db>`
+
+Opens the deck database and returns it. The newest database format found in the folder is used.
+
+#### `apkg.getMedia(): Promise<Record<string, string>>`
+
+Returns the mapping from media file names in the folder to the original names: `{ '0': 'car.jpg' }`.
+
+### `Db`
+
+Notes and cards:
+
+| Method | Returns |
+| --- | --- |
+| `getNotes()` | All notes, each with its cards in `note.cards` |
+| `getModels()` | Note types (models) keyed by id, with templates in `tmpls` and fields in `flds` |
+| `getCollection()` | The `col` row with `conf`, `models`, `decks` and `tags` parsed from JSON |
+| `getDeckConfig()` | The first row of `deck_config` |
+
+Raw SQL:
+
+| Method | Description |
+| --- | --- |
+| `all(sql, ...params)` | All rows |
+| `get(sql, ...params)` | The first row or `undefined` |
+| `run(sql, ...params)` | Runs a statement, returns `{ lastID, changes }` |
+| `exec(sql)` | Runs one or more statements without parameters |
+| `prepare(sql)` | Native `StatementSync` |
+| `getDatabaseInstance()` | Native `DatabaseSync` |
+| `close()` | Closes the database |
+
+Parameters can be passed as a list, an array or an object with named values:
+
+```js
+await db.all('SELECT * FROM cards WHERE nid = ?', noteId);
+await db.all('SELECT * FROM cards WHERE nid = ? AND ord = ?', [noteId, 0]);
+await db.get('SELECT * FROM notes WHERE id = $id', { $id: noteId });
+```
+
+Rows are plain objects, BLOB columns are returned as `Buffer`.
+
+### `Unpack`
+
+Low-level unpacking without opening the database:
+
+```js
+import { Unpack } from 'anki-apkg-parser';
+
+await new Unpack().unpack('./deck.apkg', './unpacked');
+```
+
+## Deck formats
+
+Anki has changed the deck format several times. Some methods depend on it:
+
+| | `collection.anki2` / `.anki21` (legacy) | `collection.anki21b` (Anki 2.1.50+) |
+| --- | --- | --- |
+| `getNotes()` | ✔ | ✔ |
+| `getModels()` | ✔ from `col.models` | ✔ from `notetypes`, `templates`, `fields` tables |
+| `getMedia()` | ✔ JSON | ✔ Protocol Buffers |
+| `getCollection()` | ✔ | ✘ throws: models and decks are stored in separate tables |
+| `getDeckConfig()` | ✘ throws: no `deck_config` table | ✔ `config` is a raw Protocol Buffers message |
+
+The structure of `getModels()` items differs between formats. Template HTML is available as `qfmt` and `afmt` in both.
+
+For the database schema see the [Anki database structure](https://github.com/ankidroid/Anki-Android/wiki/Database-Structure) description.
+
+## Migrating from 1.x
+
+- Node.js 22.13+ is required. The `sqlite` and `sqlite3` packages are replaced with the built-in `node:sqlite`.
+- `open`, `close`, `all`, `get`, `run` and `exec` keep the same async signatures.
+- `Db` is no longer an instance of `Database` from the `sqlite` package. Use `db.getDatabaseInstance()` for the native database.
+- SQL errors come from `node:sqlite`: `error.code` is `ERR_SQLITE_ERROR`, the SQLite code is in `errcode` and `errstr`.
+- On Node.js 22, opening a database prints `ExperimentalWarning: SQLite is an experimental feature`. It does not affect the result.
+
+## License
+
+[MIT](LICENSE)

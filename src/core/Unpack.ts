@@ -5,6 +5,10 @@ import * as fzstd from 'fzstd';
 import yauzl from 'yauzl';
 import { Transform } from 'node:stream';
 import { createReadStream, createWriteStream } from 'node:fs';
+import { DB_FILES } from '../constants.js';
+
+const ZSTD_MAGIC = Buffer.from([0x28, 0xb5, 0x2f, 0xfd]);
+const ZST_DIR = 'zst'; // prefix of temporary folder for decompressed files
 
 export default class Unpack {
 
@@ -17,6 +21,7 @@ export default class Unpack {
     if (!fs.existsSync(file)) throw new Error('File not found: ' + file);
 
     this.createDir(out);
+    this.removeLeftovers(out);
 
     // decompress deck
     await new Promise((resolve, reject) => {
@@ -32,56 +37,105 @@ export default class Unpack {
         })
         zipfile.on("entry", function(entry) {
           if (/\/$/.test(entry.fileName)) return zipfile.readEntry();
-        
+
           zipfile.openReadStream(entry, function(err, readStream) {
-            if (err) throw err;
-            const writeStream = fs.createWriteStream(path.join(out, entry.fileName));
-            writeStream.on('finish', () => {
-              zipfile.readEntry();
-            });
-            writeStream.on('error', (e) => {
-              zipfile.readEntry();
-            });
-  
-            readStream
-              .pipe(writeStream)
-              .on('error', (err) => {
-                reject(err);
+            if (err) {
+              zipfile.close();
+              return reject(err);
+            }
+
+            pipeline(readStream, fs.createWriteStream(path.join(out, entry.fileName)))
+              .then(() => zipfile.readEntry())
+              .catch((e) => {
+                zipfile.close();
+                reject(new Error(`Failed to extract "${entry.fileName}": ${e?.message}`));
               });
           });
         });
       });
     });
 
-    const zst = path.join(out, 'zst');
-    if(!fs.existsSync(zst)) fs.mkdirSync(zst);
-    
+    const zst = fs.mkdtempSync(path.join(out, `${ZST_DIR}-`));
+
     // unzip zstd
     const files = fs.readdirSync(out);
 
-    for (let file of files) {
-      const target = path.join(out, file);
-      if (fs.lstatSync(target).isDirectory()) continue;
+    try {
+      for (let file of files) {
+        const target = path.join(out, file);
+        if (fs.lstatSync(target).isDirectory()) continue;
+        if (!this.isZstd(target)) continue;
 
-      const targetUnzst = path.join(zst, file);
-      const result = await this.unzstdFile(target, targetUnzst);
+        const targetUnzst = path.join(zst, file);
+        try {
+          await this.decompress(target, targetUnzst);
+        } catch (e: any) {
+          // keeping a compressed file in place leads to misleading errors later,
+          // e.g. "SQLITE_NOTADB: file is not a database" for collection.anki21b
+          throw new Error(`Failed to decompress "${file}" (zstd): ${e?.message}`);
+        }
 
-      if (result && fs.existsSync(result)) fs.renameSync(result, target); 
+        fs.renameSync(targetUnzst, target);
+      }
+    } finally {
+      fs.rmSync(zst, { recursive: true, force: true });
     }
   }
 
+  /**
+   * Decompress zstd file
+   * @returns output path or null if decompression failed
+   */
   async unzstdFile(inputPath: string, outputPath: string) {
+    try {
+      await this.decompress(inputPath, outputPath);
+      return outputPath;
+    } catch (err: any) {
+      return null;
+    }
+  }
+
+  private async decompress(inputPath: string, outputPath: string): Promise<void> {
     try {
       await pipeline(
         createReadStream(inputPath),
         new ZstdDecompressor(),
         createWriteStream(outputPath)
       );
-      return outputPath;
-    } catch (err: any) {
-      // console.error('Decompression failed:', inputPath, err.message);
-      if (fs.existsSync(outputPath)) fs.rmSync(outputPath, {recursive: true});
-      return null;
+    } catch (err) {
+      fs.rmSync(outputPath, { recursive: true, force: true });
+      throw err;
+    }
+  }
+
+  /**
+   * Checks zstd frame magic number (28 B5 2F FD)
+   */
+  private isZstd(file: string): boolean {
+    const fd = fs.openSync(file, 'r');
+    try {
+      const buf = Buffer.alloc(4);
+      const read = fs.readSync(fd, buf, 0, 4, 0);
+      return read === 4 && buf.equals(ZSTD_MAGIC);
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+
+  /**
+   * Removes files which can be left in the folder after unpacking another deck.
+   * Stale databases or sqlite -wal/-shm files are picked up by sqlite and Apkg
+   * and give data of the previous deck or a corrupted database.
+   * @param out unpacking folder
+   */
+  private removeLeftovers(out: string) {
+    const names = [ZST_DIR, 'media', 'meta'];
+    for (const db of Object.values(DB_FILES)) {
+      names.push(db, `${db}-wal`, `${db}-shm`, `${db}-journal`);
+    }
+
+    for (const name of names) {
+      fs.rmSync(path.join(out, name), { recursive: true, force: true });
     }
   }
 

@@ -1,4 +1,4 @@
-import ICard from './ICard';
+import ICard from './ICard.js';
 
 export default interface INote {
   id: any;

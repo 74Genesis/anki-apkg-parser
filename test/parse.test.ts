@@ -154,6 +154,46 @@ test('Test real decks', async (t) => {
   t.truthy(!!notes?.[0]?.id);
 });
 
+test('Broken zstd database throws a decompression error', async (t) => {
+  const error = await t.throwsAsync(createApkg('broken_zstd_deck.apkg'));
+
+  t.regex(error?.message || '', /Failed to decompress "collection\.anki21b"/);
+});
+
+test('Stale sqlite wal file is removed on unpacking', async (t) => {
+  const deck = path.join(__dirname, 'decks', 'new_deck.apkg');
+  const temp = path.join(__dirname, 'temp', 'stale_wal');
+  const wal = path.join(temp, 'collection.anki21b-wal');
+  if (fs.existsSync(temp)) fs.rmSync(temp, {recursive: true});
+
+  // make wal file with changes, which sqlite applies on next open
+  let apkg = await Apkg.create(deck, temp);
+  let db = await apkg.getDb();
+  await db.exec('PRAGMA wal_autocheckpoint=0');
+  await db.run('DELETE FROM notes');
+  const walData = fs.readFileSync(wal);
+  await db.close();
+  fs.writeFileSync(wal, walData);
+
+  apkg = await Apkg.create(deck, temp);
+  db = await apkg.getDb();
+  const notes = await db.getNotes();
+  await db.close();
+
+  t.is(notes.length, 5);
+});
+
+test('Database of previous deck is removed on unpacking', async (t) => {
+  const temp = path.join(__dirname, 'temp', 'reuse_folder');
+  if (fs.existsSync(temp)) fs.rmSync(temp, {recursive: true});
+
+  await Apkg.create(path.join(__dirname, 'decks', 'new_deck.apkg'), temp);
+  const apkg = await Apkg.create(path.join(__dirname, 'decks', 'legacy_deck.apkg'), temp);
+
+  t.false(fs.existsSync(path.join(temp, 'collection.anki21b')));
+  t.deepEqual(await apkg.getMedia(), { '0': 'download.jpg', '1': 'cable-car.mp3' });
+});
+
 test('zstd decompress', async (t) => {
   const file = __dirname + '/zstd/test.txt.zst';
   const out = __dirname + '/temp/test.txt';
@@ -168,9 +208,9 @@ test('zstd decompress', async (t) => {
 
 async function createApkg(name: string) {
   const deck = path.join(__dirname, 'decks', name);
-  const temp = path.join(__dirname, 'temp', name);
+  // unique folder: tests run concurrently and may unpack the same deck
+  fs.mkdirSync(path.join(__dirname, 'temp'), {recursive: true});
+  const temp = fs.mkdtempSync(path.join(__dirname, 'temp', path.basename(name) + '-'));
 
-  if (fs.existsSync(temp)) fs.rmSync(temp, {recursive: true});
-  
   return await Apkg.create(deck, temp);
 }
