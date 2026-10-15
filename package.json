@@ -2,7 +2,7 @@
   "name": "anki-apkg-parser",
   "type": "module",
   "version": "2.0.0",
-  "description": "Nodejs helper for parsing Anki `.apkg` files. You can unpack the deck and get list of notes, cards, media files, models. The database is opened with built-in `node:sqlite`, so you can make any SQL queries yourself",
+  "description": "Read Anki deck files (.apkg, .colpkg) in Node.js: notes, cards, note types and media, with full SQL access via node:sqlite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -12,30 +12,40 @@
     }
   },
   "author": "Igor Razumov",
-  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/74Genesis/anki-apkg-parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/74Genesis/anki-apkg-parser/issues"
+  },
+  "homepage": "https://github.com/74Genesis/anki-apkg-parser#readme",
+  "license": "MIT",
   "scripts": {
-    "build": "tsc && cp -r src/protos dist/",
-    "test": "npm run build && ava"
+    "clean": "node -e \"require('fs').rmSync('dist', {recursive: true, force: true})\"",
+    "build": "npm run clean && tsc && node -e \"require('fs').cpSync('src/protos', 'dist/protos', {recursive: true})\"",
+    "test": "npm run build && ava",
+    "prepack": "npm run build"
   },
   "engines": {
     "node": ">=22.13.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "keywords": [
     "anki",
-    "apkg"
+    "apkg",
+    "colpkg",
+    "anki-deck",
+    "flashcards",
+    "parser",
+    "sqlite"
   ],
-  "publishConfig": {
-    "directory": "dist"
-  },
   "ava": {
     "files": [
       "test/**/*.test.ts"
-    ],
-    "nodeArguments": [
-      "--experimental-strip-types"
     ],
     "typescript": {
       "rewritePaths": {
