@@ -130,7 +130,7 @@ Notes and cards:
 | --- | --- |
 | `getNotes()` | All notes, each with its cards in `note.cards` |
 | `getModels()` | Note types (models) keyed by id, with templates in `tmpls` and fields in `flds` |
-| `getCollection()` | The `col` row with `conf`, `models`, `decks` and `tags` parsed from JSON |
+| `getCollection()` | The `col` row (`crt`, `mod`, `ver`…) with `conf`, `models`, `decks` and `tags` as objects |
 | `getDeckConfig()` | The first row of `deck_config` |
 
 Raw SQL:
@@ -174,10 +174,12 @@ Anki has changed the deck format several times. Some methods depend on it:
 | `getNotes()` | ✔ | ✔ |
 | `getModels()` | ✔ from `col.models` | ✔ from `notetypes`, `templates`, `fields` tables |
 | `getMedia()` | ✔ JSON | ✔ Protocol Buffers |
-| `getCollection()` | ✔ | ✘ throws: models and decks are stored in separate tables |
+| `getCollection()` | ✔ from JSON in the `col` table | ✔ collected from `config`, `notetypes`, `decks`, `deck_config`, `tags` tables |
 | `getDeckConfig()` | ✘ throws: no `deck_config` table | ✔ `config` is a raw Protocol Buffers message |
 
 The structure of `getModels()` items differs between formats. Template HTML is available as `qfmt` and `afmt` in both.
+
+In `getCollection()` of new-format decks, `conf`, deck names and `tags` look the same as in legacy decks. Other deck and deck config settings are raw Protocol Buffers messages (`Buffer`), and `dconf` is an object keyed by id (a JSON string in legacy decks).
 
 For the database schema see the [Anki database structure](https://github.com/ankidroid/Anki-Android/wiki/Database-Structure) description.
 

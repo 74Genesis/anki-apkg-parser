@@ -3,6 +3,12 @@
 All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-10-27
+
+### Fixed
+
+- `getCollection()` no longer throws `Unexpected end of JSON input` on new-format decks (`collection.anki21b`). `conf`, `models`, `decks`, `dconf` and `tags` are collected from the separate tables of the new format.
+
 ## [2.0.0] - 2026-10-15
 
 ### Breaking changes
@@ -34,5 +40,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - First release on npm.
 
+[2.0.1]: https://github.com/74Genesis/anki-apkg-parser/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/74Genesis/anki-apkg-parser/compare/v1.0.1...v2.0.0
 [1.0.1]: https://github.com/74Genesis/anki-apkg-parser/releases/tag/v1.0.1

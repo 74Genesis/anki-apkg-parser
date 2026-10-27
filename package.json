@@ -1,7 +1,7 @@
 {
   "name": "anki-apkg-parser",
   "type": "module",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Read Anki deck files (.apkg, .colpkg) in Node.js: notes, cards, note types and media, with full SQL access via node:sqlite",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

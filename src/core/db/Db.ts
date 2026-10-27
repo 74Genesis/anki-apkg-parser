@@ -133,10 +133,10 @@ export default abstract class Db {
    */
   async getCollection(): Promise<any> {
     const res = await this.get('SELECT * FROM col');
-    res.conf = JSON.parse(res.conf);
-    res.models = JSON.parse(res.models);
-    res.decks = JSON.parse(res.decks);
-    res.tags = JSON.parse(res.tags);
+    res.conf = parseJson(res.conf);
+    res.models = parseJson(res.models);
+    res.decks = parseJson(res.decks);
+    res.tags = parseJson(res.tags);
 
     return res;
   }
@@ -151,6 +151,13 @@ export default abstract class Db {
     const col = await this.getCollection();
     return col?.models;
   }
+}
+
+/**
+ * New-format collections keep empty strings in col.conf/models/decks/tags
+ */
+function parseJson(value: string | null): any {
+  return value ? JSON.parse(value) : null;
 }
 
 /**

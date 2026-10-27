@@ -54,6 +54,41 @@ export default class Anki21bDb extends Db {
     return res;
   }
 
+  /**
+   * In the new format col.conf/models/decks/dconf/tags are empty,
+   * the data is stored in separate tables. Fill them to match the legacy shape where possible.
+   * @returns collection json
+   */
+  async getCollection(): Promise<any> {
+    const res = await this.get('SELECT * FROM col');
+
+    res.conf = {};
+    for (const row of await this.all('SELECT * FROM config')) {
+      res.conf[row.KEY] = JSON.parse(row.val.toString());
+    }
+
+    res.models = await this.getModels();
+
+    // common/kind are Protocol Buffers messages, kept as Buffer
+    res.decks = {};
+    for (const row of await this.all('SELECT * FROM decks')) {
+      res.decks[row.id] = { ...row, name: row.name.replaceAll('\x1f', '::') };
+    }
+
+    // config is a Protocol Buffers message, kept as Buffer
+    res.dconf = {};
+    for (const row of await this.all('SELECT * FROM deck_config')) {
+      res.dconf[row.id] = row;
+    }
+
+    res.tags = {};
+    for (const row of await this.all('SELECT tag, usn FROM tags')) {
+      res.tags[row.tag] = row.usn;
+    }
+
+    return res;
+  }
+
   private async getNoteTypes(): Promise<any> {
     const res = await this.all('SELECT * FROM notetypes');
     return res;

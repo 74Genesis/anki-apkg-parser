@@ -213,6 +213,46 @@ test('Tables with Anki "unicase" collation are readable', async (t) => {
   await db.close();
 });
 
+test('Get collection from new deck', async (t) => {
+  for (const name of ['deck_media_new.apkg', 'collection_nomedia_new.colpkg']) {
+    const apkg = await createApkg(name);
+    const db = await apkg.getDb();
+    const col = await db.getCollection();
+    await db.close();
+
+    t.is(col.crt, 1681171200);
+    t.is(col.ver, 18);
+    t.is(col.conf.schedVer, 2);
+    t.is(col.models['1681197006761'].name, 'Basic (and reversed card)');
+    t.is(col.decks['1701619629586'].name, 'new_test_deck');
+    t.is(col.dconf['1'].name, 'Default');
+    t.deepEqual(col.tags, {});
+  }
+});
+
+test('Get collection with nested deck and tags from new deck', async (t) => {
+  const apkg = await createApkg('nested_deck_tags_new.colpkg');
+  const db = await apkg.getDb();
+  const col = await db.getCollection();
+  await db.close();
+
+  t.true(Object.values(col.decks).some((deck: any) => deck.name === 'Parent::Child'));
+  t.deepEqual(Object.keys(col.tags).sort(), ['Beta', 'alpha']);
+});
+
+test('Get collection from old deck', async (t) => {
+  const apkg = await createApkg('deck_media_old.apkg');
+  const db = await apkg.getDb();
+  const col = await db.getCollection();
+  await db.close();
+
+  t.is(col.crt, 1681171200);
+  t.is(col.ver, 11);
+  t.is(col.models['1681197006761'].name, 'Basic (and reversed card)');
+  t.is(col.decks['1701619629586'].name, 'new_test_deck');
+  t.deepEqual(col.tags, {});
+});
+
 test('zstd decompress', async (t) => {
   const file = __dirname + '/zstd/test.txt.zst';
   const out = __dirname + '/temp/test.txt';
